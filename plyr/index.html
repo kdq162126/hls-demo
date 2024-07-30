@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<!--[if lt IE 7]>      <html class="no-js lt-ie9 lt-ie8 lt-ie7"> <![endif]-->
+<!--[if IE 7]>         <html class="no-js lt-ie9 lt-ie8"> <![endif]-->
+<!--[if IE 8]>         <html class="no-js lt-ie9"> <![endif]-->
+<!--[if gt IE 8]>      <html class="no-js"> <!--<![endif]-->
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <title></title>
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <link rel="stylesheet" href="style.css">
+        <link rel="stylesheet" href="https://unpkg.com/plyr@3.7.8/dist/plyr.css">
+        <script src="https://cdn.rawgit.com/video-dev/hls.js/18bb552/dist/hls.min.js"></script>
+        <script src="https://unpkg.com/plyr@3.7.8/dist/plyr.min.js"></script>
+
+    </head>
+    <body>
+        <div class="container">
+            <video controls crossorigin playsinline poster="https://bitdash-a.akamaihd.net/content/sintel/poster.png"></video>
+            <script>
+                document.addEventListener('DOMContentLoaded', () => {
+                    const source = 'https://bitdash-a.akamaihd.net/content/sintel/hls/playlist.m3u8';
+                    const video = document.querySelector('video');
+                    
+                    // For more options see: https://github.com/sampotts/plyr/#options
+                    // captions.update is required for captions to work with hls.js
+                    const player = new Plyr(video, {
+                        controls: ['play-large', 'play', 'mute', 'volume', 'captions', 'settings', 'pip', 'airplay', 'fullscreen'],
+                        captions: {
+                            active: true, 
+                            update: true, 
+                            language: 'en'
+                        }
+                    });
+                    
+                    if (!Hls.isSupported()) {
+                        video.src = source;
+                    } else {
+                        // For more Hls.js options, see https://github.com/dailymotion/hls.js
+                        const hls = new Hls();
+                        hls.loadSource(source);
+                        hls.attachMedia(video);
+                        window.hls = hls;
+                        
+                        // Handle changing captions
+                        player.on('languagechange', () => {
+                            // Caption support is still flaky. See: https://github.com/sampotts/plyr/issues/994
+                            setTimeout(() => hls.subtitleTrack = player.currentTrack, 50);
+                        });
+                    }
+                    
+                    // Expose player so it can be used from the console
+                    window.player = player;
+                });
+            </script>
+        </div>
+        <!-- Plyr resources and browser polyfills are specified in the pen settings -->
+        <!-- Hls.js 0.9.x and 0.10.x both have critical bugs affecting this demo. Using fixed git hash to when it was working (0.10.0 pre-release), until https://github.com/video-dev/hls.js/issues/1790 has been resolved -->
+    </body>
+</html>
