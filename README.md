@@ -30,3 +30,9 @@ ffmpeg -i 8.mp4 -c:v libx264 -c:a aac -strict -2 -f hls -hls_time 8 -hls_list_si
 ```bash
 python3 server.py -l  testdata/0.m3u8 testdata/1.m3u8 testdata/2.m3u8 testdata/3.m3u8 testdata/4.m3u8 testdata/5.m3u8 testdata/6.m3u8 testdata/7.m3u8 testdata/8.m3u8
 ```
+
+[LiveStream reference](https://livepush.io/hls-player/index.html)
+.
+[Custom Plyr button](https://dev.to/sh20raj/how-to-integrate-plyrios-video-player-with-custom-controls-10jp)
+
+http://www.sh20raj.com/2021/05/plyrio-video-player-integration-skin-Customizing-and-Adding-Download-Button-to-plyr.html
