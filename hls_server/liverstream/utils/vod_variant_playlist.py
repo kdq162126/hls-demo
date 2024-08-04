@@ -6,8 +6,8 @@ As well as a list of media segments included in this track
 """
 
 import os
-import segment
 import re
+from . import segment
 
 class VodVariantPlaylist():
     def __init__(self, bandwidth, resolution, codecs, location):

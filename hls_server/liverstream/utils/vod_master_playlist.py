@@ -5,7 +5,7 @@ Could contain one or more variant playlists
 
 import os
 import re
-import vod_variant_playlist as vp
+from . import vod_variant_playlist as vp
 
 class VodMasterPlaylist():
     def __init__(self, location):
