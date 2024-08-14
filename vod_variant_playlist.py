@@ -9,6 +9,9 @@ import os
 import segment
 import re
 
+# GLOBAL
+current_index = 0
+
 class VodVariantPlaylist():
     def __init__(self, bandwidth, resolution, codecs, location):
         self.bandwidth = bandwidth
@@ -61,34 +64,47 @@ class VodVariantPlaylist():
                  the time since the server starts
     """
     def serialize(self, is_vod=True, hls_version=3, time_offset=0):
+        global current_index
         playlist = "#EXTM3U\n"
         if is_vod:
             playlist += "#EXT-X-PLAYLIST-TYPE:VOD\n"
         playlist += "#EXT-X-TARGETDURATION:{}\n".format(self.target_duration)
         playlist += "#EXT-X-VERSION:{}\n".format(hls_version)
         media_sequence = 0
-        start_index = 0
+        start_index = current_index
         if not is_vod:
             last_segment = self.segments[len(self.segments) - 1]
             total_duration = last_segment.start_time + last_segment.duration
             media_sequence += int(time_offset / total_duration) * len(self.segments)
             time_offset %= total_duration #Offset in the track that we should start serving from
+            print('start_time', last_segment.start_time)
+            print('duration', last_segment.duration)
+            print('media_sequence', media_sequence)
+            print('time_offset', time_offset)
             for i in range(0, len(self.segments)):
+                print('...', current_index, time_offset, (self.segments[i].start_time + self.segments[i].duration))
+
                 if time_offset < (self.segments[i].start_time + self.segments[i].duration):
                     start_index = i
                     break
             media_sequence += start_index
+
+        if current_index == len(self.segments) - 1:
+            start_index = current_index
+        current_index = start_index
+
         playlist += "#EXT-X-MEDIA-SEQUENCE:{}\n".format(media_sequence)
+        print('///////////////////////', start_index)
         segments = self.segments[start_index:] + self.segments[:start_index]
         for s in segments:
             playlist += "#EXTINF:{},\n".format(s.duration)
             playlist += "{}\n".format(s.location)
-            if s.discontinuity:
-                playlist += "#EXT-X-DISCONTINUITY\n"
+            # if s.discontinuity:
+            #     playlist += "#EXT-X-DISCONTINUITY\n"
         # If VOD, put #EXT-X-ENDLIST instead of discontinuity tag
-        if is_vod:
-            playlist = playlist[:playlist.rfind("#EXT-X-DISCONTINUITY\n")]
-            playlist += "#EXT-X-ENDLIST\n"
+        # if is_vod:
+        #     playlist = playlist[:playlist.rfind("#EXT-X-DISCONTINUITY\n")]
+        #     playlist += "#EXT-X-ENDLIST\n"
         return playlist
 
 

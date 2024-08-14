@@ -10,6 +10,10 @@ import argparse
 import vod_master_playlist as mp
 import signal
 import threading
+from utils.preparemedia import ffmpeg_transcode_and_hls_segmentation, create_segment_index
+from const import *
+from segment_explorer import start_explore_segment
+
 
 # Globals
 master_playlist = None
@@ -75,6 +79,8 @@ def generate_master_playlist(source_playlists):
     with open("playlist.m3u8", 'w') as f:
         f.write(master_playlist.serialize())
 
+    return master_playlist
+
 def generate_variant_playlist(variant_index):
     if variant_index < 0 or variant_index > (len(master_playlist.variants) - 1):
         raise IOError("Non-existing variant playlist")
@@ -104,6 +110,8 @@ def stop_server(httpd):
     httpd.shutdown()
     httpd.server_close()
 
+
+
 def main():
     help_text = """
     Start HLS streaming server with existing HLS VOD files.
@@ -112,45 +120,53 @@ def main():
     You can also start live streaming by looping existing VOD file(s) with -l or --loop.
     """
     parser = argparse.ArgumentParser(description=help_text)
-    parser.add_argument('playlists', metavar='playlists', type=str, nargs='+',
-                        help="List of source playlists to serve from; order of playlists will be followed during serving.")
     parser.add_argument('-p', '--port', nargs='?', type=int, default=8000,
                         help="Port to serve from, default 8000")
     parser.add_argument('-l', '--loop', dest='loop', action='store_true',
                         help="Serve in loop mode (live streaming)")
     args = parser.parse_args()
-    source_playlists = args.playlists
+    source_playlists = []
+    # source_playlists = args.playlists
     port = args.port
 
     stream_session = 'xxx'
+    index = 0
     start_index = -1
-    video_path = os.path.join('static/video', stream_session)
+    video_path = os.path.join(VIDEO_PATH, stream_session)
     for root, dirs, files in os.walk(video_path):
+        files = sorted(files, key=lambda x: int(x.split('.')[0]))
         for file in files:
             try:
                 file_name_ext = os.path.basename(file)
                 file_name = os.path.splitext(file_name_ext)[0]
-                index = int(file_name)
+                _index = int(file_name)
             except Exception as e:
                 print(f'... server.py - 133: {e}')
                 continue
 
             # Already process
-            if index <= start_index:
+            if _index - start_index != 1:
                 continue
 
-            
-
-
-
+            print('FOUNDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD', file)
+            start_index += 1
+            index = start_index
+            input_path = os.path.join(root, file)
+            output_dir = os.path.join(MANIFEST_PATH, stream_session, file_name)
+            ffmpeg_transcode_and_hls_segmentation(input_path, output_dir)
+            variant_path = create_segment_index(stream_session, index)
+            source_playlists.append(variant_path)
 
     print('....', source_playlists)
     
     global is_vod, start_time
     is_vod = not args.loop
 
-    generate_master_playlist(source_playlists)
+    master_playlist = generate_master_playlist(source_playlists)
     start_time = int(time.time())
+
+    ###
+    start_explore_segment(master_playlist, index, stream_session)
 
     httpd = start_server(port)
 

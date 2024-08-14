@@ -34,6 +34,7 @@ class VodMasterPlaylist():
                                         int(match.group("res_height")))
             codecs = set([c.strip() for c in match.group("codecs").split(',')])
             variant_location = os.path.join(path, match.group("variant_playlist"))
+            print('..........................................', variant_location)
             if os.path.isfile(variant_location):
                 variant = vp.VodVariantPlaylist(bandwidth, resolution, codecs,
                         variant_location)

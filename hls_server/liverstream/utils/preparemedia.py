@@ -33,4 +33,4 @@ def ffmpeg_transcode_and_hls_segmentation(input_path, output_dir):
         raise Exception(f'Error during ffmpeg transcoding: {result.stderr}')
     
 
-ffmpeg_transcode_and_hls_segmentation('datatest/origin/0.mp4', 'out/0')
+# ffmpeg_transcode_and_hls_segmentation('datatest/origin/0.mp4', 'out/0')
