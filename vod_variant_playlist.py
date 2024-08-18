@@ -9,8 +9,11 @@ import os
 import segment
 import re
 
+CHUNK_SIZE = 6
+
 # GLOBAL
-current_index = 0
+Current_index = 0
+Media_sequence = 0
 
 class VodVariantPlaylist():
     def __init__(self, bandwidth, resolution, codecs, location):
@@ -23,10 +26,8 @@ class VodVariantPlaylist():
             raise FileNotFoundError("Unable to find {}".format(location))
 
     def parse(self, location):
-        print(location)
         with open(location, 'r') as f:
             content = f.read()
-            print(content)
 
         pattern = r"^#EXT-X-TARGETDURATION:(?P<target_duration>\d+)$"
         match = re.search(pattern, content, re.M)
@@ -64,16 +65,18 @@ class VodVariantPlaylist():
                  the time since the server starts
     """
     def serialize(self, is_vod=True, hls_version=3, time_offset=0):
-        global current_index
+        global Current_index
+
         playlist = "#EXTM3U\n"
         if is_vod:
             playlist += "#EXT-X-PLAYLIST-TYPE:VOD\n"
         playlist += "#EXT-X-TARGETDURATION:{}\n".format(self.target_duration)
         playlist += "#EXT-X-VERSION:{}\n".format(hls_version)
+
         media_sequence = 0
-        start_index = current_index
+        start_index = Current_index
         if not is_vod:
-            last_segment = self.segments[len(self.segments) - 1]
+            last_segment = self.segments[-1]
             total_duration = last_segment.start_time + last_segment.duration
             media_sequence += int(time_offset / total_duration) * len(self.segments)
             time_offset %= total_duration #Offset in the track that we should start serving from
@@ -82,16 +85,16 @@ class VodVariantPlaylist():
             print('media_sequence', media_sequence)
             print('time_offset', time_offset)
             for i in range(0, len(self.segments)):
-                print('...', current_index, time_offset, (self.segments[i].start_time + self.segments[i].duration))
+                print('...', Current_index, time_offset, (self.segments[i].start_time + self.segments[i].duration))
 
                 if time_offset < (self.segments[i].start_time + self.segments[i].duration):
                     start_index = i
                     break
             media_sequence += start_index
 
-        if current_index == len(self.segments) - 1:
-            start_index = current_index
-        current_index = start_index
+        if Current_index == len(self.segments) - 1:
+            start_index = Current_index
+        Current_index = start_index
 
         playlist += "#EXT-X-MEDIA-SEQUENCE:{}\n".format(media_sequence)
         print('///////////////////////', start_index)
@@ -105,6 +108,32 @@ class VodVariantPlaylist():
         # if is_vod:
         #     playlist = playlist[:playlist.rfind("#EXT-X-DISCONTINUITY\n")]
         #     playlist += "#EXT-X-ENDLIST\n"
+        return playlist
+
+
+    def sssserialize(self, is_vod=True, hls_version=3, time_offset=0):
+        global Current_index, Media_sequence
+
+        playlist = "#EXTM3U\n"
+        if is_vod:
+            playlist += "#EXT-X-PLAYLIST-TYPE:VOD\n"
+        playlist += "#EXT-X-TARGETDURATION:{}\n".format(self.target_duration)
+        playlist += "#EXT-X-VERSION:{}\n".format(hls_version)
+
+        # if Current_index < len(self.segments) - CHUNK_SIZE:
+        #     segments = self.segments[Current_index:Current_index+CHUNK_SIZE]               
+        #     Current_index += 1
+        #     Media_sequence += 1
+        # else:
+        #     segments = self.segments[-CHUNK_SIZE:]
+
+        playlist += "#EXT-X-MEDIA-SEQUENCE:{}\n".format(Media_sequence)
+        for s in self.segments:
+            playlist += "#EXTINF:{},\n".format(s.duration)
+            playlist += "{}\n".format(s.location)
+            # if s.discontinuity:
+            #     playlist += "#EXT-X-DISCONTINUITY\n"
+
         return playlist
 
 
